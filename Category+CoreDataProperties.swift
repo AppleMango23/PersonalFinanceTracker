@@ -30,3 +30,6 @@ extension Category {
 extension Category : Identifiable {
 
 }
+
+extension Transaction: Identifiable {
+}

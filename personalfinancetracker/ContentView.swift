@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import CoreData
 
 struct ExpenseDataPoint: Identifiable {
     let id = UUID()
@@ -216,6 +217,130 @@ struct DashboardView: View {
     }
 }
 
+// MARK: - Transaction Detail View
+
+struct TransactionDetailView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
+    
+    let transaction: Transaction
+    
+    @State private var amount: String = ""
+    @State private var currency: String = ""
+    @State private var selectedCategory: Category?
+    @State private var note: String = ""
+    @State private var date: Date = Date()
+    @State private var showDeleteAlert = false
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Amount")) {
+                    TextField("Enter amount", text: $amount)
+                        .keyboardType(.decimalPad)
+                }
+                
+                Section(header: Text("Currency")) {
+                    TextField("Enter currency", text: $currency)
+                }
+                
+                Section(header: Text("Category")) {
+                    Picker("Select Category", selection: $selectedCategory) {
+                        ForEach(fetchCategories(), id: \.self) { category in
+                            Text(category.name ?? "Unnamed").tag(category as Category?)
+                        }
+                    }
+                }
+                
+                Section(header: Text("Note")) {
+                    TextField("Enter note", text: $note)
+                }
+                
+                Section(header: Text("Date")) {
+                    DatePicker("Select Date", selection: $date, displayedComponents: .date)
+                }
+                
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteAlert = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("Delete Transaction")
+                            Spacer()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Edit Transaction")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        updateTransaction()
+                    }
+                }
+            }
+            .alert("Delete Transaction", isPresented: $showDeleteAlert) {
+                Button("Delete", role: .destructive) {
+                    deleteTransaction()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to delete this transaction?")
+            }
+        }
+        .onAppear {
+            // Initialize state with current transaction values
+            if let currentAmount = transaction.amount as? Double {
+                amount = String(format: "%.2f", abs(currentAmount))
+            }
+            currency = transaction.currency ?? "MYR"
+            selectedCategory = transaction.category
+            note = transaction.note ?? ""
+            date = transaction.date ?? Date()
+        }
+    }
+    
+    private func fetchCategories() -> [Category] {
+        let request: NSFetchRequest<Category> = Category.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Category.name, ascending: true)]
+        return (try? viewContext.fetch(request)) ?? []
+    }
+    
+    private func updateTransaction() {
+        if let amountValue = Double(amount) {
+            // Keep the sign (positive/negative) of the original amount
+            let originalAmount = transaction.amount as? Double ?? 0
+            let newAmount = originalAmount < 0 ? -abs(amountValue) : abs(amountValue)
+            transaction.amount = NSDecimalNumber(value: newAmount)
+        }
+        
+        transaction.currency = currency
+        transaction.category = selectedCategory
+        transaction.note = note
+        transaction.date = date
+        
+        do {
+            try viewContext.save()
+            dismiss()
+        } catch {
+            print("Failed to update transaction: \(error)")
+        }
+    }
+    
+    private func deleteTransaction() {
+        viewContext.delete(transaction)
+        try? viewContext.save()
+        dismiss()
+    }
+}
+
 // MARK: - Transactions
 
 struct TransactionsView: View {
@@ -225,7 +350,8 @@ struct TransactionsView: View {
         animation: .default)
     private var transactions: FetchedResults<Transaction>
     @State private var isAddTransactionPresented = false
-
+    @State private var selectedTransaction: Transaction?
+    
     var body: some View {
         NavigationView {
             List {
@@ -236,8 +362,11 @@ struct TransactionsView: View {
                         amount: tx.amount as? Double ?? 0,
                         date: tx.date ?? Date()
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        selectedTransaction = tx
+                    }
                 }
-                .onDelete(perform: deleteTransactions)
             }
             .navigationTitle("Transactions")
             .toolbar {
@@ -252,13 +381,11 @@ struct TransactionsView: View {
             .sheet(isPresented: $isAddTransactionPresented) {
                 AddTransactionView()
             }
-        }
-    }
-
-    private func deleteTransactions(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { transactions[$0] }.forEach(viewContext.delete)
-            try? viewContext.save()
+            .sheet(item: $selectedTransaction) { transaction in
+                TransactionDetailView(transaction: transaction)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
         }
     }
 }
