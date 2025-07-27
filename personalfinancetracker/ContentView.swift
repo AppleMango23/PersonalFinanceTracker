@@ -3,7 +3,7 @@ import Charts
 
 struct ExpenseDataPoint: Identifiable {
     let id = UUID()
-    let date: Date
+    let month: String
     let amount: Double
 }
 
@@ -58,36 +58,34 @@ struct DashboardView: View {
         let calendar = Calendar.current
         let now = Date()
         
-        // Get the start and end of the current month
-        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: now)),
-              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
-            return []
-        }
+        // Get the start of current month and two months before
+        let currentMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        let previousMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth)!
+        let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: currentMonth)!
         
-        var dailyTotals: [Date: Double] = [:]
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMMM"
         
-        // Initialize all days of the month with zero
-        var currentDate = monthStart
-        while currentDate <= monthEnd {
-            dailyTotals[currentDate] = 0
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
-        }
+        var monthlyTotals: [Date: Double] = [
+            twoMonthsAgo: 0,
+            previousMonth: 0,
+            currentMonth: 0
+        ]
         
-        // Calculate daily totals
+        // Calculate monthly totals
         for transaction in transactions {
             guard let date = transaction.date,
                   let amount = transaction.amount as? Double,
-                  amount < 0, // Only expenses (negative amounts)
-                  date >= monthStart,
-                  date <= monthEnd else { continue }
+                  amount < 0 else { continue }
             
-            // Get start of the day for this transaction
-            let dayStart = calendar.startOfDay(for: date)
-            dailyTotals[dayStart, default: 0] += abs(amount)
+            let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
+            if monthlyTotals.keys.contains(monthStart) {
+                monthlyTotals[monthStart, default: 0] += abs(amount)
+            }
         }
         
-        return dailyTotals.sorted(by: { $0.key < $1.key }).map { date, amount in
-            ExpenseDataPoint(date: date, amount: amount)
+        return monthlyTotals.sorted(by: { $0.key < $1.key }).map { date, amount in
+            ExpenseDataPoint(month: dateFormatter.string(from: date), amount: amount)
         }
     }
     
@@ -117,28 +115,22 @@ struct DashboardView: View {
                     
                     // Expense Chart
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Daily Expenses")
+                        Text("Monthly Expenses")
                             .font(.headline)
                         
                         Chart(expenseData) { point in
-                            LineMark(
-                                x: .value("Day", point.date, unit: .day),
+                            BarMark(
+                                x: .value("Month", point.month),
                                 y: .value("Amount", point.amount)
                             )
                             .foregroundStyle(.red)
-                            .lineStyle(StrokeStyle(lineWidth: 3))
                         }
                         .frame(height: 200)
-                        .chartXAxis {
-                            AxisMarks(values: .stride(by: .day)) { _ in
-                                AxisGridLine()
-                            }
-                        }
                         .chartYAxis {
                             AxisMarks { value in
                                 let amount = value.as(Double.self) ?? 0
                                 AxisValueLabel {
-                                    Text(amount.formatted(.currency(code: "USD").precision(.fractionLength(0))))
+                                    Text("\(Int(amount))")
                                 }
                                 AxisTick()
                                 AxisGridLine()
