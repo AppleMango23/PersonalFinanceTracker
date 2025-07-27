@@ -43,11 +43,7 @@ A modern, intuitive iOS app built with SwiftUI for managing personal finances wi
   <tr>
     <td><img src="screenshots/Simulator%20Screenshot%20-%20iPhone%2016%20-%202025-07-27%20at%2016.11.01.png" width="200"/></td>
     <td><img src="screenshots/Simulator%20Screenshot%20-%20iPhone%2016%20-%202025-07-27%20at%2016.12.57.png" width="200"/></td>
-    <td><img src="screenshots/Simulator%20Screenshot%20-%20iPhone%2016%20-%202025-07-27%20at%2016.12.59.png" width="200"/></td>
-  </tr>
-  <tr>
     <td><img src="screenshots/Simulator%20Screenshot%20-%20iPhone%2016%20-%202025-07-27%20at%2016.15.54.png" width="200"/></td>
-    <td><img src="screenshots/Simulator%20Screenshot%20-%20iPhone%2016%20-%202025-07-27%20at%2016.15.59.png" width="200"/></td>
   </tr>
 </table>
 
