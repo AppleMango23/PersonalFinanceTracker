@@ -675,7 +675,7 @@ struct CategoryCard: View {
                 }
                 
                 VStack(alignment: .trailing) {
-                    Text("Spent")
+                    Text(totalSpent < 0 ? "Spent" : "Receive")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text("$\(abs(totalSpent), specifier: "%.2f")")

@@ -11,6 +11,7 @@ struct AddTransactionView: View {
     @State private var note: String = ""
     @State private var date: Date = Date()
     @State private var photo: UIImage? = nil
+    @State private var isExpense: Bool = true
 
     var body: some View {
         NavigationView {
@@ -19,6 +20,23 @@ struct AddTransactionView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
+                        // Transaction Type Toggle
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Transaction Type")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Picker("Transaction Type", selection: $isExpense) {
+                                Text("Expense").tag(true)
+                                Text("Income").tag(false)
+                            }
+                            .pickerStyle(.segmented)
+                            .tint(isExpense ? .red : .green)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
                         // Amount Card
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Amount")
@@ -27,7 +45,7 @@ struct AddTransactionView: View {
                             TextField("Enter amount", text: $amount)
                                 .keyboardType(.decimalPad)
                                 .font(.system(size: 34, weight: .bold))
-                                .foregroundColor(.primary)
+                                .foregroundColor(isExpense ? .red : .green)
                         }
                         .padding()
                         .background(.ultraThinMaterial)
@@ -164,11 +182,9 @@ struct AddTransactionView: View {
         let newTransaction = Transaction(context: viewContext)
         newTransaction.id = UUID()
         
-        // Convert amount to Double, make it negative if it's an expense
         if let amountValue = Double(amount) {
-            // For now, we'll consider all transactions as expenses (negative values)
-            // You can add a toggle or segmented control later to distinguish between income and expense
-            newTransaction.amount = NSDecimalNumber(value: -abs(amountValue))
+            // Make the amount negative for expenses, positive for income
+            newTransaction.amount = NSDecimalNumber(value: isExpense ? -abs(amountValue) : abs(amountValue))
         }
         
         newTransaction.currency = currency
