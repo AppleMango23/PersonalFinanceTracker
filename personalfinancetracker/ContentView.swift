@@ -82,6 +82,7 @@ struct TransactionsView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Transaction.date, ascending: false)],
         animation: .default)
     private var transactions: FetchedResults<Transaction>
+    @State private var isAddTransactionPresented = false
 
     var body: some View {
         NavigationView {
@@ -100,11 +101,14 @@ struct TransactionsView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        // TODO: show add-transaction
+                        isAddTransactionPresented = true
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .sheet(isPresented: $isAddTransactionPresented) {
+                AddTransactionView()
             }
         }
     }
@@ -119,7 +123,7 @@ struct TransactionsView: View {
 
 struct TransactionRow: View {
     let name: String
-    let note: String? // Add a note property
+    let note: String?
     let amount: Double
     let date: Date
     
@@ -153,6 +157,7 @@ struct CategoriesView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Category.name, ascending: true)],
         animation: .default)
     private var categories: FetchedResults<Category>
+    @State private var isAddCategoryPresented = false
 
     var body: some View {
         NavigationView {
@@ -166,11 +171,14 @@ struct CategoriesView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        // TODO: show add-category
+                        isAddCategoryPresented = true
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .sheet(isPresented: $isAddCategoryPresented) {
+                AddCategoryView()
             }
         }
     }
