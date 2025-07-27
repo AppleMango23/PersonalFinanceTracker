@@ -259,12 +259,47 @@ struct CategoriesView: View {
         animation: .default)
     private var categories: FetchedResults<Category>
     @State private var isAddCategoryPresented = false
+    
+    private func calculateTotalSpent(for category: Category) -> Double {
+        let transactions = category.transactions as? Set<Transaction> ?? []
+        var total: Double = 0.0
+        
+        for transaction in transactions {
+            if let amount = transaction.amount as? Double {
+                total += amount
+            }
+        }
+        
+        return total
+    }
 
     var body: some View {
         NavigationView {
             List {
-                ForEach(categories) { cat in
-                    Text(cat.name ?? "Unnamed")
+                ForEach(categories) { category in
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text(category.name ?? "Unnamed")
+                                .font(.headline)
+                            Spacer()
+                            let transactionCount = (category.transactions as? Set<Transaction>)?.count ?? 0
+                            Text("\(transactionCount) transactions")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        if let budgetLimit = category.budgetLimit as? Double, budgetLimit > 0 {
+                            Text("Budget: $\(budgetLimit, specifier: "%.2f")")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                        
+                        let totalSpent = calculateTotalSpent(for: category)
+                        Text("Total spent: $\(abs(totalSpent), specifier: "%.2f")")
+                            .font(.caption)
+                            .foregroundColor(totalSpent < 0 ? .red : .green)
+                    }
+                    .padding(.vertical, 4)
                 }
                 .onDelete(perform: deleteCategories)
             }

@@ -10,19 +10,23 @@ import Foundation
 import CoreData
 
 
-extension TransactionCategory {
+extension Category {
 
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<TransactionCategory> {
-        return NSFetchRequest<TransactionCategory>(entityName: "TransactionCategory")
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<Category> {
+        return NSFetchRequest<Category>(entityName: "Category")
     }
 
     @NSManaged public var id: UUID?
     @NSManaged public var name: String?
     @NSManaged public var budgetLimit: NSDecimalNumber?
-    @NSManaged public var transactions: Transaction?
-
+    @NSManaged public var transactions: Set<Transaction>?
+    
+    public var transactionsArray: [Transaction] {
+        let set = transactions ?? []
+        return set.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+    }
 }
 
-extension TransactionCategory : Identifiable {
+extension Category : Identifiable {
 
 }
