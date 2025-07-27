@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "Finances, Family, and a Croissant.png",
+      "filename" : "Friendly Finance Fun.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -13,7 +13,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Finances, Family, and a Croissant 1.png",
+      "filename" : "Friendly Finance Fun 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -25,7 +25,7 @@
           "value" : "tinted"
         }
       ],
-      "filename" : "Finances, Family, and a Croissant 2.png",
+      "filename" : "Friendly Finance Fun 2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
