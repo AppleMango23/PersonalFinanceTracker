@@ -77,7 +77,14 @@ struct AddTransactionView: View {
     private func saveTransaction() {
         let newTransaction = Transaction(context: viewContext)
         newTransaction.id = UUID()
-        newTransaction.amount = NSDecimalNumber(value: Double(amount) ?? 0)
+        
+        // Convert amount to Double, make it negative if it's an expense
+        if let amountValue = Double(amount) {
+            // For now, we'll consider all transactions as expenses (negative values)
+            // You can add a toggle or segmented control later to distinguish between income and expense
+            newTransaction.amount = NSDecimalNumber(value: -abs(amountValue))
+        }
+        
         newTransaction.currency = currency
         newTransaction.category = selectedCategory
         newTransaction.note = note

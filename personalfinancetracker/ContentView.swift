@@ -1,4 +1,11 @@
 import SwiftUI
+import Charts
+
+struct ExpenseDataPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let amount: Double
+}
 
 struct ContentView: View {
     var body: some View {
@@ -24,51 +31,145 @@ struct ContentView: View {
 // MARK: - Dashboard
 
 struct DashboardView: View {
-    // sample data
-    @State private var totalIncome: Double = 4500
-    @State private var totalExpense: Double = 3200
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Transaction.date, ascending: true)],
+        animation: .default)
+    private var transactions: FetchedResults<Transaction>
+    
+    private var totalIncome: Double {
+        transactions
+            .compactMap { $0.amount as? Double }
+            .filter { $0 > 0 }
+            .reduce(0, +)
+    }
+    
+    private var totalExpense: Double {
+        transactions
+            .compactMap { $0.amount as? Double }
+            .filter { $0 < 0 }
+            .map(abs)
+            .reduce(0, +)
+    }
+    
     @State private var isAddTransactionPresented: Bool = false
+    
+    private var expenseData: [ExpenseDataPoint] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Get the start and end of the current month
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: now)),
+              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+            return []
+        }
+        
+        var dailyTotals: [Date: Double] = [:]
+        
+        // Initialize all days of the month with zero
+        var currentDate = monthStart
+        while currentDate <= monthEnd {
+            dailyTotals[currentDate] = 0
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
+        }
+        
+        // Calculate daily totals
+        for transaction in transactions {
+            guard let date = transaction.date,
+                  let amount = transaction.amount as? Double,
+                  amount < 0, // Only expenses (negative amounts)
+                  date >= monthStart,
+                  date <= monthEnd else { continue }
+            
+            // Get start of the day for this transaction
+            let dayStart = calendar.startOfDay(for: date)
+            dailyTotals[dayStart, default: 0] += abs(amount)
+        }
+        
+        return dailyTotals.sorted(by: { $0.key < $1.key }).map { date, amount in
+            ExpenseDataPoint(date: date, amount: amount)
+        }
+    }
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("Income")
-                            .font(.caption)
-                        Text("$\(totalIncome, specifier: "%.2f")")
-                            .font(.title2).bold()
-                            .foregroundColor(.green)
+            ScrollView {
+                VStack(spacing: 20) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("Income")
+                                .font(.caption)
+                            Text("$\(totalIncome, specifier: "%.2f")")
+                                .font(.title2).bold()
+                                .foregroundColor(.green)
+                        }
+                        Spacer()
+                        VStack(alignment: .leading) {
+                            Text("Expense")
+                                .font(.caption)
+                            Text("$\(totalExpense, specifier: "%.2f")")
+                                .font(.title2).bold()
+                                .foregroundColor(.red)
+                        }
                     }
+                    .padding()
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    
+                    // Expense Chart
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Daily Expenses")
+                            .font(.headline)
+                        
+                        Chart(expenseData) { point in
+                            LineMark(
+                                x: .value("Day", point.date, unit: .day),
+                                y: .value("Amount", point.amount)
+                            )
+                            .foregroundStyle(.red)
+                            .lineStyle(StrokeStyle(lineWidth: 3))
+                        }
+                        .frame(height: 200)
+                        .chartXAxis {
+                            AxisMarks(values: .stride(by: .day)) { _ in
+                                AxisGridLine()
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks { value in
+                                let amount = value.as(Double.self) ?? 0
+                                AxisValueLabel {
+                                    Text(amount.formatted(.currency(code: "USD").precision(.fractionLength(0))))
+                                }
+                                AxisTick()
+                                AxisGridLine()
+                            }
+                        }
+                        .chartPlotStyle { plotArea in
+                            plotArea
+                                .background(Color.gray.opacity(0.1))
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    
                     Spacer()
-                    VStack(alignment: .leading) {
-                        Text("Expense")
-                            .font(.caption)
-                        Text("$\(totalExpense, specifier: "%.2f")")
-                            .font(.title2).bold()
-                            .foregroundColor(.red)
+                    
+                    Button(action: {
+                        isAddTransactionPresented = true
+                    }) {
+                        Label("Add Transaction", systemImage: "plus.circle.fill")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.accentColor.opacity(0.1))
+                            .cornerRadius(10)
+                    }
+                    .sheet(isPresented: $isAddTransactionPresented) {
+                        AddTransactionView()
                     }
                 }
                 .padding()
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                
-                Spacer()
-                
-                Button(action: {
-                    isAddTransactionPresented = true
-                }) {
-                    Label("Add Transaction", systemImage: "plus.circle.fill")
-                        .font(.headline)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.accentColor.opacity(0.1))
-                        .cornerRadius(10)
-                }
-                .sheet(isPresented: $isAddTransactionPresented) {
-                    AddTransactionView()
-                }
             }
-            .padding()
             .navigationTitle("Dashboard")
         }
     }
