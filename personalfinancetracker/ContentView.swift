@@ -24,6 +24,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Categories", systemImage: "tag.fill")
                 }
+            
+            AccountView()
+                .tabItem {
+                    Label("Account", systemImage: "person.circle")
+                }
         }
     }
 }
@@ -36,6 +41,8 @@ struct DashboardView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Transaction.date, ascending: true)],
         animation: .default)
     private var transactions: FetchedResults<Transaction>
+    @AppStorage("monthStartDate") private var monthStartDate: Int = 1
+    @State private var refreshID = UUID() // Add this for forcing view refresh
     
     private var totalIncome: Double {
         transactions
@@ -54,22 +61,50 @@ struct DashboardView: View {
     
     @State private var isAddTransactionPresented: Bool = false
     
+    private func getCustomMonthRange(for date: Date) -> (start: Date, end: Date)? {
+        let calendar = Calendar.current
+        
+        // Get the components of the given date
+        guard let year = calendar.dateComponents([.year, .month], from: date).year,
+              let month = calendar.dateComponents([.year, .month], from: date).month else {
+            return nil
+        }
+        
+        // Create date components for the custom month start
+        var startComponents = DateComponents()
+        startComponents.year = year
+        startComponents.month = month
+        startComponents.day = monthStartDate
+        
+        // Get the start date
+        guard let startDate = calendar.date(from: startComponents) else { return nil }
+        
+        // Get the end date (same day next month)
+        guard let endDate = calendar.date(byAdding: .month, value: 1, to: startDate) else { return nil }
+        
+        return (startDate, endDate)
+    }
+    
     private var expenseData: [ExpenseDataPoint] {
         let calendar = Calendar.current
         let now = Date()
         
-        // Get the start of current month and two months before
-        let currentMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let previousMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth)!
-        let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: currentMonth)!
+        // Get the current custom month range
+        guard let currentRange = getCustomMonthRange(for: now),
+              let previousMonth = calendar.date(byAdding: .month, value: -1, to: now),
+              let previousRange = getCustomMonthRange(for: previousMonth),
+              let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: now),
+              let twoMonthsAgoRange = getCustomMonthRange(for: twoMonthsAgo) else {
+            return []
+        }
         
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MMMM"
+        dateFormatter.dateFormat = "MMM d"
         
-        var monthlyTotals: [Date: Double] = [
-            twoMonthsAgo: 0,
-            previousMonth: 0,
-            currentMonth: 0
+        var customMonthlyTotals: [(range: (Date, Date), total: Double)] = [
+            (twoMonthsAgoRange, 0),
+            (previousRange, 0),
+            (currentRange, 0)
         ]
         
         // Calculate monthly totals
@@ -78,14 +113,16 @@ struct DashboardView: View {
                   let amount = transaction.amount as? Double,
                   amount < 0 else { continue }
             
-            let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
-            if monthlyTotals.keys.contains(monthStart) {
-                monthlyTotals[monthStart, default: 0] += abs(amount)
+            for (index, monthRange) in customMonthlyTotals.enumerated() {
+                if date >= monthRange.range.0 && date < monthRange.range.1 {
+                    customMonthlyTotals[index].total += abs(amount)
+                }
             }
         }
         
-        return monthlyTotals.sorted(by: { $0.key < $1.key }).map { date, amount in
-            ExpenseDataPoint(month: dateFormatter.string(from: date), amount: amount)
+        return customMonthlyTotals.map { range, total in
+            let label = "\(dateFormatter.string(from: range.0))"
+            return ExpenseDataPoint(month: label, amount: total)
         }
     }
     
@@ -163,6 +200,18 @@ struct DashboardView: View {
                 .padding()
             }
             .navigationTitle("Dashboard")
+            .id(refreshID) // Add this to force view refresh
+            .onAppear {
+                // Set up notification observer
+                NotificationCenter.default.addObserver(
+                    forName: NSNotification.Name("MonthStartDateChanged"),
+                    object: nil,
+                    queue: .main
+                ) { _ in
+                    // Force view refresh when month start date changes
+                    refreshID = UUID()
+                }
+            }
         }
     }
 }
@@ -315,6 +364,39 @@ struct CategoriesView: View {
         withAnimation {
             offsets.map { categories[$0] }.forEach(viewContext.delete)
             try? viewContext.save()
+        }
+    }
+}
+
+// MARK: - Account View
+
+struct AccountView: View {
+    @AppStorage("monthStartDate") private var monthStartDate: Int = 1
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Month Settings")) {
+                    Stepper("Start Date: \(monthStartDate)") {
+                        if monthStartDate < 28 {
+                            monthStartDate += 1
+                        }
+                    } onDecrement: {
+                        if monthStartDate > 1 {
+                            monthStartDate -= 1
+                        }
+                    }
+                    .onChange(of: monthStartDate) { _, _ in
+                        // This will trigger a refresh of the dashboard when the date changes
+                        NotificationCenter.default.post(name: NSNotification.Name("MonthStartDateChanged"), object: nil)
+                    }
+                    
+                    Text("Your monthly period will be from day \(monthStartDate) to day \(monthStartDate) of the next month")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle("Account")
         }
     }
 }
