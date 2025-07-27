@@ -44,7 +44,7 @@ struct PersistenceController {
 }
 
 @main
-struct FinanceTrackerApp: App {
+struct CroissantTrackerApp: App {
     let persistenceController = PersistenceController.shared
 
     var body: some Scene {

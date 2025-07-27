@@ -10,26 +10,37 @@ struct ExpenseDataPoint: Identifiable {
 
 struct ContentView: View {
     var body: some View {
-        TabView {
-            DashboardView()
-                .tabItem {
-                    Label("Dashboard", systemImage: "house.fill")
-                }
+        ZStack {
+            // Global background gradient
+            LinearGradient(
+                gradient: Gradient(colors: [Color.blue.opacity(0.2), Color.purple.opacity(0.2)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             
-            TransactionsView()
-                .tabItem {
-                    Label("Transactions", systemImage: "list.bullet")
-                }
-            
-            CategoriesView()
-                .tabItem {
-                    Label("Categories", systemImage: "tag.fill")
-                }
-            
-            AccountView()
-                .tabItem {
-                    Label("Account", systemImage: "person.circle")
-                }
+            TabView {
+                DashboardView()
+                    .tabItem {
+                        Label("Dashboard", systemImage: "house.fill")
+                    }
+                
+                TransactionsView()
+                    .tabItem {
+                        Label("Transactions", systemImage: "list.bullet")
+                    }
+                
+                CategoriesView()
+                    .tabItem {
+                        Label("Categories", systemImage: "tag.fill")
+                    }
+                
+                SettingsView()
+                    .tabItem {
+                        Label("Settings", systemImage: "gearshape.fill")
+                    }
+            }
+            .tint(.primary)
         }
     }
 }
@@ -129,76 +140,99 @@ struct DashboardView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Income")
-                                .font(.caption)
-                            Text("$\(totalIncome, specifier: "%.2f")")
-                                .font(.title2).bold()
-                                .foregroundColor(.green)
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Summary Card
+                        HStack(spacing: 20) {
+                            // Income Card
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Income")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Text("$\(totalIncome, specifier: "%.2f")")
+                                    .font(.title2).bold()
+                                    .foregroundColor(.green)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .shadow(color: .green.opacity(0.1), radius: 10, x: 0, y: 5)
+                            
+                            // Expense Card
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Expense")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Text("$\(totalExpense, specifier: "%.2f")")
+                                    .font(.title2).bold()
+                                    .foregroundColor(.red)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .shadow(color: .red.opacity(0.1), radius: 10, x: 0, y: 5)
                         }
-                        Spacer()
-                        VStack(alignment: .leading) {
-                            Text("Expense")
-                                .font(.caption)
-                            Text("$\(totalExpense, specifier: "%.2f")")
-                                .font(.title2).bold()
-                                .foregroundColor(.red)
-                        }
-                    }
-                    .padding()
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    
-                    // Expense Chart
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Monthly Expenses")
-                            .font(.headline)
                         
-                        Chart(expenseData) { point in
-                            BarMark(
-                                x: .value("Month", point.month),
-                                y: .value("Amount", point.amount)
-                            )
-                            .foregroundStyle(.red)
-                        }
-                        .frame(height: 200)
-                        .chartYAxis {
-                            AxisMarks { value in
-                                let amount = value.as(Double.self) ?? 0
-                                AxisValueLabel {
-                                    Text("\(Int(amount))")
+                        // Expense Chart Card
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Monthly Expenses")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Chart(expenseData) { point in
+                                BarMark(
+                                    x: .value("Month", point.month),
+                                    y: .value("Amount", point.amount)
+                                )
+                                .foregroundStyle(
+                                    .linearGradient(
+                                        colors: [.red.opacity(0.7), .orange.opacity(0.7)],
+                                        startPoint: .bottom,
+                                        endPoint: .top
+                                    )
+                                )
+                            }
+                            .frame(height: 200)
+                            .chartYAxis {
+                                AxisMarks { value in
+                                    let amount = value.as(Double.self) ?? 0
+                                    AxisValueLabel {
+                                        Text("\(Int(amount))")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    AxisTick()
+                                    AxisGridLine()
                                 }
-                                AxisTick()
-                                AxisGridLine()
                             }
                         }
-                        .chartPlotStyle { plotArea in
-                            plotArea
-                                .background(Color.gray.opacity(0.1))
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        
+                        // Add Transaction Button
+                        Button(action: {
+                            isAddTransactionPresented = true
+                        }) {
+                            Label("Add Transaction", systemImage: "plus.circle.fill")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .background(Color.blue)
+                                .clipShape(RoundedRectangle(cornerRadius: 15))
+                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                        .sheet(isPresented: $isAddTransactionPresented) {
+                            AddTransactionView()
                         }
                     }
                     .padding()
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        isAddTransactionPresented = true
-                    }) {
-                        Label("Add Transaction", systemImage: "plus.circle.fill")
-                            .font(.headline)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.accentColor.opacity(0.1))
-                            .cornerRadius(10)
-                    }
-                    .sheet(isPresented: $isAddTransactionPresented) {
-                        AddTransactionView()
-                    }
                 }
-                .padding()
             }
             .navigationTitle("Dashboard")
             .id(refreshID) // Add this to force view refresh
@@ -214,6 +248,7 @@ struct DashboardView: View {
                 }
             }
         }
+        .navigationViewStyle(.stack)
     }
 }
 
@@ -234,42 +269,114 @@ struct TransactionDetailView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Amount")) {
-                    TextField("Enter amount", text: $amount)
-                        .keyboardType(.decimalPad)
-                }
+            ZStack {
+                Color.white.ignoresSafeArea()
                 
-                Section(header: Text("Currency")) {
-                    TextField("Enter currency", text: $currency)
-                }
-                
-                Section(header: Text("Category")) {
-                    Picker("Select Category", selection: $selectedCategory) {
-                        ForEach(fetchCategories(), id: \.self) { category in
-                            Text(category.name ?? "Unnamed").tag(category as Category?)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Amount Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Amount")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            TextField("Enter amount", text: $amount)
+                                .keyboardType(.decimalPad)
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(.primary)
                         }
-                    }
-                }
-                
-                Section(header: Text("Note")) {
-                    TextField("Enter note", text: $note)
-                }
-                
-                Section(header: Text("Date")) {
-                    DatePicker("Select Date", selection: $date, displayedComponents: .date)
-                }
-                
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteAlert = true
-                    } label: {
-                        HStack {
-                            Spacer()
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Currency Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Currency")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            TextField("Enter currency", text: $currency)
+                                .font(.title3)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Category Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Category")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Menu {
+                                ForEach(fetchCategories(), id: \.self) { category in
+                                    Button {
+                                        selectedCategory = category
+                                    } label: {
+                                        Text(category.name ?? "Unnamed")
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(selectedCategory?.name ?? "Select Category")
+                                        .foregroundColor(selectedCategory == nil ? .secondary : .primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Note Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Note")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            TextField("Enter note", text: $note)
+                                .font(.title3)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Date Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Date")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            DatePicker("Select Date", selection: $date, displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                                .tint(.blue)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Delete Button
+                        Button(role: .destructive) {
+                            showDeleteAlert = true
+                        } label: {
                             Text("Delete Transaction")
-                            Spacer()
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .background(Color.red)
+                                .clipShape(RoundedRectangle(cornerRadius: 15))
+                                .shadow(color: .red.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
+                        .padding(.top, 20)
                     }
+                    .padding()
                 }
             }
             .navigationTitle("Edit Transaction")
@@ -354,18 +461,36 @@ struct TransactionsView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(transactions) { tx in
-                    TransactionRow(
-                        name: tx.category?.name ?? "—",
-                        note: tx.note,
-                        amount: tx.amount as? Double ?? 0,
-                        date: tx.date ?? Date()
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        selectedTransaction = tx
+            ZStack {
+                Color.white.ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(transactions) { transaction in
+                            TransactionRow(
+                                name: transaction.category?.name ?? "—",
+                                note: transaction.note,
+                                amount: transaction.amount as? Double ?? 0,
+                                date: transaction.date ?? Date()
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedTransaction = transaction
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    withAnimation {
+                                        viewContext.delete(transaction)
+                                        try? viewContext.save()
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash.fill")
+                                }
+                                .tint(.red)
+                            }
+                        }
                     }
+                    .padding()
                 }
             }
             .navigationTitle("Transactions")
@@ -374,7 +499,8 @@ struct TransactionsView: View {
                     Button {
                         isAddTransactionPresented = true
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
                     }
                 }
             }
@@ -387,6 +513,7 @@ struct TransactionsView: View {
                     .presentationDragIndicator(.visible)
             }
         }
+        .navigationViewStyle(.stack)
     }
 }
 
@@ -397,24 +524,43 @@ struct TransactionRow: View {
     let date: Date
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
+        HStack(spacing: 16) {
+            // Category Icon
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: 50, height: 50)
+                .overlay(
+                    Text(name.prefix(1))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary.opacity(0.8))
+                )
+                .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+            
+            VStack(alignment: .leading, spacing: 4) {
                 Text(name)
                     .font(.headline)
                 if let note = note, !note.isEmpty {
                     Text(note)
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 Text(date, style: .date)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            
             Spacer()
+            
             Text("$\(amount, specifier: "%.2f")")
+                .font(.title3)
+                .fontWeight(.semibold)
                 .foregroundColor(amount >= 0 ? .green : .red)
         }
-        .padding(.vertical, 4)
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -443,33 +589,16 @@ struct CategoriesView: View {
 
     var body: some View {
         NavigationView {
-            List {
-                ForEach(categories) { category in
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(category.name ?? "Unnamed")
-                                .font(.headline)
-                            Spacer()
-                            let transactionCount = (category.transactions as? Set<Transaction>)?.count ?? 0
-                            Text("\(transactionCount) transactions")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+            ZStack {
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(categories) { category in
+                            CategoryCard(category: category, totalSpent: calculateTotalSpent(for: category))
                         }
-                        
-                        if let budgetLimit = category.budgetLimit as? Double, budgetLimit > 0 {
-                            Text("Budget: $\(budgetLimit, specifier: "%.2f")")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                        
-                        let totalSpent = calculateTotalSpent(for: category)
-                        Text("Total spent: $\(abs(totalSpent), specifier: "%.2f")")
-                            .font(.caption)
-                            .foregroundColor(totalSpent < 0 ? .red : .green)
+                        .onDelete(perform: deleteCategories)
                     }
-                    .padding(.vertical, 4)
+                    .padding()
                 }
-                .onDelete(perform: deleteCategories)
             }
             .navigationTitle("Categories")
             .toolbar {
@@ -477,7 +606,8 @@ struct CategoriesView: View {
                     Button {
                         isAddCategoryPresented = true
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
                     }
                 }
             }
@@ -485,6 +615,7 @@ struct CategoriesView: View {
                 AddCategoryView()
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     private func deleteCategories(offsets: IndexSet) {
@@ -495,36 +626,128 @@ struct CategoriesView: View {
     }
 }
 
-// MARK: - Account View
+struct CategoryCard: View {
+    let category: Category
+    let totalSpent: Double
+    
+    var transactionCount: Int {
+        (category.transactions as? Set<Transaction>)?.count ?? 0
+    }
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                // Category Icon
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(category.name?.prefix(1) ?? "?")
+                            .font(.headline)
+                            .foregroundColor(.primary.opacity(0.8))
+                    )
+                    .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(category.name ?? "Unnamed")
+                        .font(.headline)
+                    Text("\(transactionCount) transactions")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            
+            Divider()
+                .background(.ultraThinMaterial)
+            
+            HStack {
+                if let budgetLimit = category.budgetLimit as? Double, budgetLimit > 0 {
+                    VStack(alignment: .leading) {
+                        Text("Budget")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("$\(budgetLimit, specifier: "%.2f")")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    Spacer()
+                }
+                
+                VStack(alignment: .trailing) {
+                    Text("Spent")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("$\(abs(totalSpent), specifier: "%.2f")")
+                        .font(.subheadline)
+                        .foregroundColor(totalSpent < 0 ? .red : .green)
+                }
+            }
+            
+            if let budgetLimit = category.budgetLimit as? Double, budgetLimit > 0 {
+                let progress = min(abs(totalSpent) / budgetLimit, 1.0)
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(.ultraThinMaterial)
+                            .frame(height: 8)
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(progress >= 1.0 ? Color.red : Color.blue)
+                            .frame(width: geometry.size.width * progress, height: 8)
+                    }
+                }
+                .frame(height: 8)
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+    }
+}
 
-struct AccountView: View {
+// MARK: - Settings View
+
+struct SettingsView: View {
     @AppStorage("monthStartDate") private var monthStartDate: Int = 1
     
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Month Settings")) {
-                    Stepper("Start Date: \(monthStartDate)") {
-                        if monthStartDate < 28 {
-                            monthStartDate += 1
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Month Settings")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        Stepper("Start Date: \(monthStartDate)") {
+                            if monthStartDate < 28 {
+                                monthStartDate += 1
+                            }
+                        } onDecrement: {
+                            if monthStartDate > 1 {
+                                monthStartDate -= 1
+                            }
                         }
-                    } onDecrement: {
-                        if monthStartDate > 1 {
-                            monthStartDate -= 1
+                        .onChange(of: monthStartDate) { _, _ in
+                            NotificationCenter.default.post(name: NSNotification.Name("MonthStartDateChanged"), object: nil)
                         }
+                        
+                        Text("Your monthly period will be from day \(monthStartDate) to day \(monthStartDate) of the next month")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    .onChange(of: monthStartDate) { _, _ in
-                        // This will trigger a refresh of the dashboard when the date changes
-                        NotificationCenter.default.post(name: NSNotification.Name("MonthStartDateChanged"), object: nil)
-                    }
-                    
-                    Text("Your monthly period will be from day \(monthStartDate) to day \(monthStartDate) of the next month")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                 }
+                .padding()
             }
-            .navigationTitle("Account")
+            .navigationTitle("Settings")
         }
+        .navigationViewStyle(.stack)
     }
 }
 

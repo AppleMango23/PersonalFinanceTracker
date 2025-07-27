@@ -14,51 +14,137 @@ struct AddTransactionView: View {
 
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Amount")) {
-                    TextField("Enter amount", text: $amount)
-                        .keyboardType(.decimalPad)
-                }
-
-                Section(header: Text("Currency")) {
-                    TextField("Enter currency", text: $currency)
-                }
-
-                Section(header: Text("Category")) {
-                    Picker("Select Category", selection: $selectedCategory) {
-                        ForEach(fetchCategories(), id: \ .self) { category in
-                            Text(category.name ?? "Unnamed").tag(category as Category?)
+            ZStack {
+                Color.white.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Amount Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Amount")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            TextField("Enter amount", text: $amount)
+                                .keyboardType(.decimalPad)
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(.primary)
                         }
-                    }
-                }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
 
-                Section(header: Text("Note")) {
-                    TextField("Enter note", text: $note)
-                }
+                        // Currency Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Currency")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            TextField("Enter currency", text: $currency)
+                                .font(.title3)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
 
-                Section(header: Text("Date")) {
-                    DatePicker("Select Date", selection: $date, displayedComponents: .date)
-                }
+                        // Category Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Category")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Menu {
+                                ForEach(fetchCategories(), id: \.self) { category in
+                                    Button {
+                                        selectedCategory = category
+                                    } label: {
+                                        Text(category.name ?? "Unnamed")
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(selectedCategory?.name ?? "Select Category")
+                                        .foregroundColor(selectedCategory == nil ? .secondary : .primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
 
-                Section(header: Text("Photo")) {
-                    if let photo = photo {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
+                        // Note Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Note")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            TextField("Enter note", text: $note)
+                                .font(.title3)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Date Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Date")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            DatePicker("Select Date", selection: $date, displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                                .tint(.blue)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                        // Photo Section
+                        if let photo = photo {
+                            Image(uiImage: photo)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        }
+
+                        Button("Add Photo") {
+                            // TODO: Implement photo picker
+                        }
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        
+                        // Save Button
+                        Button(action: { saveTransaction() }) {
+                            Text("Save Transaction")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .background(Color.blue)
+                                .clipShape(RoundedRectangle(cornerRadius: 15))
+                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                        .padding(.top, 10)
                     }
-                    Button("Add Photo") {
-                        // TODO: Implement photo picker
-                    }
+                    .padding()
                 }
             }
             .navigationTitle("Add Transaction")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveTransaction()
-                    }
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
