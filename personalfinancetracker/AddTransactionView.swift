@@ -6,7 +6,7 @@ struct AddTransactionView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var amount: String = ""
-    @State private var currency: String = "USD"
+    @State private var currency: String = "MYR"
     @State private var selectedCategory: Category?
     @State private var note: String = ""
     @State private var date: Date = Date()
