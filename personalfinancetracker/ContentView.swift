@@ -699,6 +699,8 @@ struct CategoriesView: View {
         @AppStorage("monthStartDate") private var monthStartDate: Int = 1
         @State private var isAddCategoryPresented = false
         @State private var refreshID = UUID()
+        @State private var showingForm = false
+        @State private var categoryToEdit: Category?
         
         // Helper to get current custom‑month date range
         private func getCustomMonthRange(for date: Date) -> (start: Date, end: Date)? {
@@ -768,13 +770,18 @@ struct CategoriesView: View {
                         } else {
                             LazyVStack(spacing: 16) {
                                 ForEach(categories) { category in
-                                    CategoryCard(
-                                        category: category,
-                                        totalSpent: calculateTotalSpentThisMonth(for: category),
-                                        transactionCount: transactionCountThisMonth(for: category)
-                                    )
+                                    Button {
+                                        categoryToEdit = category
+                                        showingForm = true
+                                    } label: {
+                                        CategoryCard(
+                                            category: category,
+                                            totalSpent: calculateTotalSpentThisMonth(for: category),
+                                            transactionCount: transactionCountThisMonth(for: category)
+                                        )
+                                    }
+                                    
                                 }
-                                .onDelete(perform: deleteCategories)
                             }
                         }
                     }
@@ -791,8 +798,27 @@ struct CategoriesView: View {
                         }
                     }
                 }
-                .sheet(isPresented: $isAddCategoryPresented) {
-                    AddCategoryView()
+                .sheet(isPresented: Binding<Bool>(
+                    get: { isAddCategoryPresented || showingForm },
+                    set: { newValue in
+                        // When the sheet dismisses (newValue == false), clear both flags
+                        if !newValue {
+                            isAddCategoryPresented = false
+                            showingForm = false
+                        }
+                    }
+                )) {
+                    // 2. Inside the sheet, choose which view to show
+                    if isAddCategoryPresented {
+                        // “+” was tapped
+                        AddCategoryView()
+                            .environment(\.managedObjectContext, viewContext)
+                    }
+                    else if showingForm, let category = categoryToEdit {
+                        // A card was tapped
+                        AddCategoryView(categoryToEdit: category)
+                            .environment(\.managedObjectContext, viewContext)
+                    }
                 }
                 .id(refreshID)
                 .onAppear {
@@ -838,7 +864,6 @@ struct CategoryCard: View {
                                 .foregroundColor(.primary.opacity(0.8))
                         )
                         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
-                    
                     VStack(alignment: .leading, spacing: 4) {
                         Text(category.name ?? "Unnamed")
                             .font(.headline)

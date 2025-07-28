@@ -1,17 +1,32 @@
 import SwiftUI
+import CoreData
 
 struct AddCategoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
-    
-    @State private var categoryName: String = ""
-    @State private var budgetLimit: String = ""
-    
+
+    // If non‑nil, we’re editing this Category; otherwise we’re adding
+    var categoryToEdit: Category?
+
+    // Form fields
+    @State private var categoryName: String
+    @State private var budgetLimit: String
+
+    // Custom initializer to prefill when editing
+    init(categoryToEdit: Category? = nil) {
+        self.categoryToEdit = categoryToEdit
+        _categoryName = State(initialValue: categoryToEdit?.name ?? "")
+        if let limit = categoryToEdit?.budgetLimit?.stringValue {
+            _budgetLimit = State(initialValue: limit)
+        } else {
+            _budgetLimit = State(initialValue: "")
+        }
+    }
+
     var body: some View {
         NavigationView {
             ZStack {
                 Color.white.ignoresSafeArea()
-                
                 ScrollView {
                     VStack(spacing: 20) {
                         // Category Name Card
@@ -28,7 +43,7 @@ struct AddCategoryView: View {
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        
+
                         // Budget Limit Card
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Budget Limit")
@@ -44,45 +59,58 @@ struct AddCategoryView: View {
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        
-                        // Save Button
-                        Button(action: { saveCategory() }) {
-                            Text("Save Category")
+
+                        // Save/Update Button
+                        Button(action: saveCategory) {
+                            Text(categoryToEdit == nil ? "Save Category" : "Update Category")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.ultraThinMaterial)
-                                .background(Color.blue)
+                                .background(categoryToEdit == nil ? Color.blue : Color.green)
                                 .clipShape(RoundedRectangle(cornerRadius: 15))
-                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                                .shadow(color: (categoryToEdit == nil ? Color.blue : Color.green).opacity(0.3), radius: 8, x: 0, y: 4)
                         }
                         .disabled(categoryName.isEmpty)
-                        .padding(.top, 20)
+
+                        // Delete Button (only when editing)
+                        if categoryToEdit != nil {
+                            Button(role: .destructive) {
+                                deleteCategory()
+                            } label: {
+                                Text("Delete Category")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red)
+                                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                                    .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
+                            }
+                        }
                     }
                     .padding()
                 }
             }
-            .navigationTitle("Add Category")
+            .navigationTitle(categoryToEdit == nil ? "Add Category" : "Edit Category")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    Button("Cancel") { dismiss() }
                 }
             }
         }
     }
-    
+
     private func saveCategory() {
-        let newCategory = Category(context: viewContext)
-        newCategory.name = categoryName
-        newCategory.id = UUID()
-        
-        if let budgetValue = Double(budgetLimit) {
-            newCategory.budgetLimit = NSDecimalNumber(value: budgetValue)
+        let cat = categoryToEdit ?? Category(context: viewContext)
+        if cat.id == nil { cat.id = UUID() }
+        cat.name = categoryName
+        if let value = Double(budgetLimit) {
+            cat.budgetLimit = NSDecimalNumber(value: value)
+        } else {
+            cat.budgetLimit = nil
         }
-        
+
         do {
             try viewContext.save()
             dismiss()
@@ -90,10 +118,16 @@ struct AddCategoryView: View {
             print("Error saving category: \(error)")
         }
     }
-}
 
-#Preview {
-    AddCategoryView()
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    private func deleteCategory() {
+        if let cat = categoryToEdit {
+            viewContext.delete(cat)
+            do {
+                try viewContext.save()
+            } catch {
+                print("Error deleting category: \(error)")
+            }
+        }
+        dismiss()
+    }
 }
-
