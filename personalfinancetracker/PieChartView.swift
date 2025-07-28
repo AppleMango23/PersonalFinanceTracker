@@ -6,10 +6,7 @@ struct PieChartView: View {
 
     var body: some View {
         VStack {
-            Text("Expenses by Category (Last 3 Months)")
-                .font(.headline)
-                .foregroundColor(.primary)
-                .padding(.bottom)
+            
 
             Chart(groupedExpenses, id: \.categoryName) {
                 SectorMark(
@@ -28,7 +25,7 @@ struct PieChartView: View {
                             Text("Total")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
-                            Text(totalExpenses, format: .currency(code: "USD"))
+                            Text(totalExpenses, format: .currency(code: "MYR"))
                                 .font(.title2.bold())
                                 .foregroundStyle(.primary)
                         }

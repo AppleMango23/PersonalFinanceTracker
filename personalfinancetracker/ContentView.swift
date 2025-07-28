@@ -280,6 +280,11 @@ struct DashboardView: View {
                     object: nil, queue: .main) { _ in
                         refreshID = UUID()
                     }
+                NotificationCenter.default.addObserver(
+                    forName: NSNotification.Name("TransactionUpdated"),
+                    object: nil, queue: .main) { _ in
+                        refreshID = UUID()
+                    }
             }
         }
         .navigationViewStyle(.stack)
@@ -519,6 +524,7 @@ struct TransactionDetailView: View {
             
             do {
                 try viewContext.save()
+                NotificationCenter.default.post(name: NSNotification.Name("TransactionUpdated"), object: nil)
                 dismiss()
             } catch {
                 print("Failed to update transaction: \(error)")
@@ -781,6 +787,11 @@ struct CategoriesView: View {
                 .onAppear {
                     NotificationCenter.default.addObserver(
                         forName: NSNotification.Name("MonthStartDateChanged"),
+                        object: nil, queue: .main) { _ in
+                            refreshID = UUID()
+                        }
+                    NotificationCenter.default.addObserver(
+                        forName: NSNotification.Name("TransactionUpdated"),
                         object: nil, queue: .main) { _ in
                             refreshID = UUID()
                         }
