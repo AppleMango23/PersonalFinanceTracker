@@ -6,8 +6,6 @@ struct PieChartView: View {
 
     var body: some View {
         VStack {
-            
-
             Chart(groupedExpenses, id: \.categoryName) {
                 SectorMark(
                     angle: .value("Amount", $0.amount),
