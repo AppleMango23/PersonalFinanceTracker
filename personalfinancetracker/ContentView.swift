@@ -554,6 +554,20 @@ struct TransactionsView: View {
         private var transactions: FetchedResults<Transaction>
         @State private var isAddTransactionPresented = false
         @State private var selectedTransaction: Transaction?
+        @State private var searchText: String = ""
+    
+        private var filteredTransactions: [Transaction] {
+            // If the field is empty, show all
+            guard !searchText.isEmpty else { return Array(transactions) }
+            
+            return transactions.filter { tx in
+                let nameMatch = tx.category?.name?
+                    .localizedCaseInsensitiveContains(searchText) ?? false
+                let noteMatch = tx.note?
+                    .localizedCaseInsensitiveContains(searchText) ?? false
+                return nameMatch || noteMatch
+            }
+        }
         
         var body: some View {
             NavigationView {
@@ -576,7 +590,7 @@ struct TransactionsView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             LazyVStack(spacing: 12) {
-                                ForEach(transactions) { transaction in
+                                ForEach(filteredTransactions) { transaction in
                                     TransactionRow(
                                         name: transaction.category?.name ?? "—",
                                         note: transaction.note,
@@ -587,33 +601,25 @@ struct TransactionsView: View {
                                     .onTapGesture {
                                         selectedTransaction = transaction
                                     }
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button(role: .destructive) {
-                                            withAnimation {
-                                                viewContext.delete(transaction)
-                                                try? viewContext.save()
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash.fill")
-                                        }
-                                        .tint(.red)
-                                    }
                                 }
                             }
                         }
                     }
                     .padding()
                 }
+                .searchable(text: $searchText,
+                               placement: .navigationBarDrawer(displayMode: .always),
+                               prompt: "Search transactions…")
                 .navigationTitle("Transactions")
                 .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            isAddTransactionPresented = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title3)
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                isAddTransactionPresented = true
+                            } label: {
+                                Image(systemName: "plus.circle")
+                                    .font(.title3)
+                            }
                         }
-                    }
                 }
                 .sheet(isPresented: $isAddTransactionPresented) {
                     AddTransactionView()
