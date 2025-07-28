@@ -262,7 +262,8 @@ struct DashboardView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue) // Removed redundant .ultraThinMaterial
+                            .background(.ultraThinMaterial)
+                            .background(Color.blue)
                             .clipShape(RoundedRectangle(cornerRadius: 15))
                             .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
