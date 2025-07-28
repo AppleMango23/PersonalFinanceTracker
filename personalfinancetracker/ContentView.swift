@@ -515,33 +515,48 @@ struct TransactionsView: View {
                 Color.white.ignoresSafeArea()
                 
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(transactions) { transaction in
-                            TransactionRow(
-                                name: transaction.category?.name ?? "—",
-                                note: transaction.note,
-                                amount: transaction.amount as? Double ?? 0,
-                                date: transaction.date ?? Date()
-                            )
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedTransaction = transaction
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    withAnimation {
-                                        viewContext.delete(transaction)
-                                        try? viewContext.save()
-                                    }
-                                } label: {
-                                    Label("Delete", systemImage: "trash.fill")
+                    if transactions.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "dollarsign.circle")
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+                            Text("No Transactions Yet")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            Text("Add your first transaction to get started.")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            ForEach(transactions) { transaction in
+                                TransactionRow(
+                                    name: transaction.category?.name ?? "—",
+                                    note: transaction.note,
+                                    amount: transaction.amount as? Double ?? 0,
+                                    date: transaction.date ?? Date()
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectedTransaction = transaction
                                 }
-                                .tint(.red)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            viewContext.delete(transaction)
+                                            try? viewContext.save()
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash.fill")
+                                    }
+                                    .tint(.red)
+                                }
                             }
                         }
                     }
-                    .padding()
                 }
+                .padding()
             }
             .navigationTitle("Transactions")
             .toolbar {
@@ -622,33 +637,51 @@ struct CategoriesView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Category.name, ascending: true)],
         animation: .default)
     private var categories: FetchedResults<Category>
+    
     @State private var isAddCategoryPresented = false
     
     private func calculateTotalSpent(for category: Category) -> Double {
-        let transactions = category.transactions as? Set<Transaction> ?? []
+        let transactions = (category.transactions as? Set<Transaction>) ?? []
         var total: Double = 0.0
         
         for transaction in transactions {
-            if let amount = transaction.amount as? Double {
-                total += amount
-            }
+            total += transaction.amount?.doubleValue ?? 0.0
         }
         
         return total
+    }
+    
+    private func transactionCount(for category: Category) -> Int {
+        return (category.transactions as? Set<Transaction>)?.count ?? 0
     }
 
     var body: some View {
         NavigationView {
             ZStack {
                 ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(categories) { category in
-                            CategoryCard(category: category, totalSpent: calculateTotalSpent(for: category))
+                    if categories.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "tag")
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+                            Text("No Categories Yet")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            Text("Add your first category to organize your transactions.")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
                         }
-                        .onDelete(perform: deleteCategories)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        LazyVStack(spacing: 16) {
+                            ForEach(categories) { category in
+                                CategoryCard(category: category, totalSpent: calculateTotalSpent(for: category))
+                            }
+                            .onDelete(perform: deleteCategories)
+                        }
                     }
-                    .padding()
                 }
+                .padding()
             }
             .navigationTitle("Categories")
             .toolbar {
