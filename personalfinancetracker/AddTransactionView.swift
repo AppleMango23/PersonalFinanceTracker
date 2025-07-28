@@ -12,6 +12,10 @@ struct AddTransactionView: View {
     @State private var date: Date = Date()
     @State private var photo: UIImage? = nil
     @State private var isExpense: Bool = true
+    
+    @State private var showingImagePicker = false
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var showingActionSheet = false
 
     var body: some View {
         NavigationView {
@@ -134,7 +138,7 @@ struct AddTransactionView: View {
                         }
 
                         Button("Add Photo") {
-                            // TODO: Implement photo picker
+                            self.showingActionSheet = true
                         }
                         .font(.headline)
                         .foregroundColor(.blue)
@@ -143,6 +147,22 @@ struct AddTransactionView: View {
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        .actionSheet(isPresented: $showingActionSheet) {
+                            ActionSheet(title: Text("Add Photo"), buttons: [
+                                .default(Text("Take Photo")) {
+                                    self.sourceType = .camera
+                                    self.showingImagePicker = true
+                                },
+                                .default(Text("Choose from Library")) {
+                                    self.sourceType = .photoLibrary
+                                    self.showingImagePicker = true
+                                },
+                                .cancel()
+                            ])
+                        }
+                        .sheet(isPresented: $showingImagePicker) {
+                            ImagePicker(sourceType: self.sourceType, selectedImage: self.$photo)
+                        }
                         
                         // Save Button
                         Button(action: { saveTransaction() }) {
@@ -191,7 +211,9 @@ struct AddTransactionView: View {
         newTransaction.category = selectedCategory
         newTransaction.note = note
         newTransaction.date = date
-        // TODO: Save photo if needed
+        if let photo = photo {
+            newTransaction.photoData = photo.jpegData(compressionQuality: 1.0)
+        }
 
         do {
             try viewContext.save()

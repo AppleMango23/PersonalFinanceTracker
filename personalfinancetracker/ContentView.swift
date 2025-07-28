@@ -265,7 +265,12 @@ struct TransactionDetailView: View {
     @State private var selectedCategory: Category?
     @State private var note: String = ""
     @State private var date: Date = Date()
+    @State private var photo: UIImage? = nil
     @State private var showDeleteAlert = false
+    
+    @State private var showingImagePicker = false
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var showingActionSheet = false
     
     var body: some View {
         NavigationView {
@@ -359,6 +364,43 @@ struct TransactionDetailView: View {
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        
+                        // Photo Section
+                        if let photo = photo {
+                            Image(uiImage: photo)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        }
+
+                        Button("Change Photo") {
+                            self.showingActionSheet = true
+                        }
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        .actionSheet(isPresented: $showingActionSheet) {
+                            ActionSheet(title: Text("Change Photo"), buttons: [
+                                .default(Text("Take Photo")) {
+                                    self.sourceType = .camera
+                                    self.showingImagePicker = true
+                                },
+                                .default(Text("Choose from Library")) {
+                                    self.sourceType = .photoLibrary
+                                    self.showingImagePicker = true
+                                },
+                                .cancel()
+                            ])
+                        }
+                        .sheet(isPresented: $showingImagePicker) {
+                            ImagePicker(sourceType: self.sourceType, selectedImage: self.$photo)
+                        }
 
                         // Delete Button
                         Button(role: .destructive) {
@@ -411,6 +453,9 @@ struct TransactionDetailView: View {
             selectedCategory = transaction.category
             note = transaction.note ?? ""
             date = transaction.date ?? Date()
+            if let photoData = transaction.photoData {
+                photo = UIImage(data: photoData)
+            }
         }
     }
     
@@ -432,6 +477,11 @@ struct TransactionDetailView: View {
         transaction.category = selectedCategory
         transaction.note = note
         transaction.date = date
+        if let photo = photo {
+            transaction.photoData = photo.jpegData(compressionQuality: 1.0)
+        } else {
+            transaction.photoData = nil
+        }
         
         do {
             try viewContext.save()
