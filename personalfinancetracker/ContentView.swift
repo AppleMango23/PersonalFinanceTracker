@@ -172,106 +172,110 @@ struct DashboardView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    
-                    // *** Summary Card ***
-                    VStack(alignment: .leading) {
-                        HStack {
-                            // Income Card
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Income")
-                                    .font(.subheadline).foregroundColor(.secondary)
-                                Text("$\(totalIncome, specifier: "%.2f")")
-                                    .font(.title2).bold().foregroundColor(.green)
-                            }
-                            
-                            Spacer() // Pushes Income and Expense cards to the sides
-                            
-                            // Expense Card
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Expense")
-                                    .font(.subheadline).foregroundColor(.secondary)
-                                Text("$\(totalExpense, specifier: "%.2f")")
-                                    .font(.title2).bold().foregroundColor(.red)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                    
-                    // Expense Chart Card
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("Monthly Expenses")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Button(action: {
-                                showPieChart.toggle()
-                            }) {
-                                Image(systemName: showPieChart ? "chart.bar.fill" : "chart.pie.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        
-                        if showPieChart {
-                            PieChartView(transactions: transactions.filter { ($0.amount?.doubleValue ?? 0.0) < 0 && $0.date! >= threeMonthsAgo })
-                        } else {
-                            Chart(expenseData) { point in
-                                BarMark(
-                                    x: .value("Month", point.month),
-                                    y: .value("Amount", point.amount)
-                                )
-                                .foregroundStyle(
-                                    .linearGradient(
-                                        colors: [.red.opacity(0.7), .orange.opacity(0.7)],
-                                        startPoint: .bottom,
-                                        endPoint: .top
-                                    )
-                                )
-                            }
-                            .frame(height: 200)
-                            .chartYAxis {
-                                AxisMarks { value in
-                                    let amount = value.as(Double.self) ?? 0
-                                    AxisValueLabel {
-                                        Text("\(Int(amount))")
-                                            .foregroundColor(.secondary)
-                                    }
-                                    AxisTick()
-                                    AxisGridLine()
+            VStack(spacing: 0) { // Use VStack to arrange content and sticky button
+                ScrollView { // Wrap scrollable content in a ScrollView
+                    VStack(spacing: 20) {
+                        // *** Summary Card ***
+                        VStack(alignment: .leading) {
+                            HStack {
+                                // Income Card
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Income")
+                                        .font(.subheadline).foregroundColor(.secondary)
+                                    Text("$\(totalIncome, specifier: "%.2f")")
+                                        .font(.title2).bold().foregroundColor(.green)
+                                }
+                                
+                                Spacer() // Pushes Income and Expense cards to the sides
+                                
+                                // Expense Card
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Expense")
+                                        .font(.subheadline).foregroundColor(.secondary)
+                                    Text("$\(totalExpense, specifier: "%.2f")")
+                                        .font(.title2).bold().foregroundColor(.red)
                                 }
                             }
                         }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        
+                        // Expense Chart Card
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Text("Monthly Expenses")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Button(action: {
+                                    showPieChart.toggle()
+                                }) {
+                                    Image(systemName: showPieChart ? "chart.bar.fill" : "chart.pie.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            
+                            if showPieChart {
+                                PieChartView(transactions: transactions.filter { ($0.amount?.doubleValue ?? 0.0) < 0 && $0.date! >= threeMonthsAgo })
+                            } else {
+                                Chart(expenseData) { point in
+                                    BarMark(
+                                        x: .value("Month", point.month),
+                                        y: .value("Amount", point.amount)
+                                    )
+                                    .foregroundStyle(
+                                        .linearGradient(
+                                            colors: [.red.opacity(0.7), .orange.opacity(0.7)],
+                                            startPoint: .bottom,
+                                            endPoint: .top
+                                        )
+                                    )
+                                }
+                                .frame(height: 200)
+                                .chartYAxis {
+                                    AxisMarks { value in
+                                        let amount = value.as(Double.self) ?? 0
+                                        AxisValueLabel {
+                                            Text("\(Int(amount))")
+                                                .foregroundColor(.secondary)
+                                        }
+                                        AxisTick()
+                                        AxisGridLine()
+                                    }
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     }
                     .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                    
-                    // Add Transaction Button
-                    Button(action: {
-                        isAddTransactionPresented = true
-                    }) {
-                        Label("Add Transaction", systemImage: "plus.circle.fill")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 15))
-                            .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                    }
-                    .sheet(isPresented: $isAddTransactionPresented) {
-                        AddTransactionView()
-                    }
                 }
-                .padding()
+                
+                Spacer() // Pushes the button to the bottom
+                
+                // Add Transaction Button (sticky at the bottom)
+                Button(action: {
+                    isAddTransactionPresented = true
+                }) {
+                    Label("Add Transaction", systemImage: "plus.circle.fill")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 15))
+                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .padding(.horizontal)
+                .padding(.bottom) // Add padding from the bottom edge
+                .sheet(isPresented: $isAddTransactionPresented) {
+                    AddTransactionView()
+                }
             }
             .navigationTitle("Dashboard")
             .id(refreshID)
