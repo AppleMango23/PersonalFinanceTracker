@@ -2,6 +2,22 @@ import SwiftUI
 import Charts
 import CoreData
 
+extension Date {
+    func startOfMonth() -> Date {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month], from: self)
+        return calendar.date(from: components)!
+    }
+
+    func endOfMonth() -> Date {
+        let calendar = Calendar.current
+        var components = DateComponents()
+        components.month = 1
+        components.day = -1
+        return calendar.date(byAdding: components, to: self.startOfMonth())!
+    }
+}
+
 struct ExpenseDataPoint: Identifiable {
     let id = UUID()
     let month: String
@@ -56,7 +72,13 @@ struct DashboardView: View {
     @AppStorage("monthStartDate") private var monthStartDate: Int = 1
     @State private var refreshID = UUID()
     @State private var isAddTransactionPresented: Bool = false
-    
+    @AppStorage("showPieChart") private var showPieChart: Bool = false
+
+    private var threeMonthsAgo: Date {
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .month, value: -2, to: Date().startOfMonth())!
+    }
+
     // Helper to get current custom‑month date range
     private func getCustomMonthRange(for date: Date) -> (start: Date, end: Date)? {
         let calendar = Calendar.current
@@ -182,33 +204,47 @@ struct DashboardView: View {
                     
                     // Expense Chart Card
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Monthly Expenses")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Chart(expenseData) { point in
-                            BarMark(
-                                x: .value("Month", point.month),
-                                y: .value("Amount", point.amount)
-                            )
-                            .foregroundStyle(
-                                .linearGradient(
-                                    colors: [.red.opacity(0.7), .orange.opacity(0.7)],
-                                    startPoint: .bottom,
-                                    endPoint: .top
-                                )
-                            )
+                        HStack {
+                            Text("Monthly Expenses")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Button(action: {
+                                showPieChart.toggle()
+                            }) {
+                                Image(systemName: showPieChart ? "chart.bar.fill" : "chart.pie.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
                         }
-                        .frame(height: 200)
-                        .chartYAxis {
-                            AxisMarks { value in
-                                let amount = value.as(Double.self) ?? 0
-                                AxisValueLabel {
-                                    Text("\(Int(amount))")
-                                        .foregroundColor(.secondary)
+                        
+                        if showPieChart {
+                            PieChartView(transactions: transactions.filter { ($0.amount?.doubleValue ?? 0.0) < 0 && $0.date! >= threeMonthsAgo })
+                        } else {
+                            Chart(expenseData) { point in
+                                BarMark(
+                                    x: .value("Month", point.month),
+                                    y: .value("Amount", point.amount)
+                                )
+                                .foregroundStyle(
+                                    .linearGradient(
+                                        colors: [.red.opacity(0.7), .orange.opacity(0.7)],
+                                        startPoint: .bottom,
+                                        endPoint: .top
+                                    )
+                                )
+                            }
+                            .frame(height: 200)
+                            .chartYAxis {
+                                AxisMarks { value in
+                                    let amount = value.as(Double.self) ?? 0
+                                    AxisValueLabel {
+                                        Text("\(Int(amount))")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    AxisTick()
+                                    AxisGridLine()
                                 }
-                                AxisTick()
-                                AxisGridLine()
                             }
                         }
                     }
@@ -218,21 +254,18 @@ struct DashboardView: View {
                     .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     
                     // Add Transaction Button
-                    // Add Transaction Button
                     Button(action: {
                         isAddTransactionPresented = true
                     }) {
-                        Text("Add Transaction")
+                        Label("Add Transaction", systemImage: "plus.circle.fill")
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(.ultraThinMaterial)
-                            .background(Color.blue)
+                            .background(Color.blue) // Removed redundant .ultraThinMaterial
                             .clipShape(RoundedRectangle(cornerRadius: 15))
                             .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
-                    .padding(.top, 10)
                     .sheet(isPresented: $isAddTransactionPresented) {
                         AddTransactionView()
                     }
